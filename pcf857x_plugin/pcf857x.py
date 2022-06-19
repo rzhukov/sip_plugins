@@ -87,6 +87,8 @@ modbits=8   # default number op io pins on i2c module
 if (pcf[u"ictype"]=="pcf8575"):
     modbits=16
 
+def boards_count():
+    return len(pcf[u"adr"])
 
 #### output command when signal received ####
 def on_zone_change(name, **kw):
@@ -95,16 +97,16 @@ def on_zone_change(name, **kw):
         print("pcf857x plugin blocked due to missing library")
         return
 
-    if len(pcf[u"adr"]) != gv.sd[u"nbrd"]:
-        print("pcf857x plugin blocked due to incomplete settings")
-        return
+    # if len(pcf[u"adr"]) != gv.sd[u"nbrd"]:
+    #     print("pcf857x plugin blocked due to incomplete settings")
+    #     return
 
     if demo_mode==False:
         bus = smbus.SMBus(int(pcf[u"bus"]))
 
     i2c_bytes = []
     
-    for b in range(gv.sd[u"nbrd"]):
+    for b in range(boards_count()):
         byte = 0xFF
         for s in range(8): # for each virtual board
             sid = b * 8 + s  # station index in gv.srvals           
@@ -113,7 +115,7 @@ def on_zone_change(name, **kw):
         #print("adding byte: ", hex(byte))
         i2c_bytes.append(byte)
 
-    for s in range(gv.sd[u"nbrd"]):
+    for s in range(boards_count()):
         if demo_mode:
             print("demo: bus.write_byte_data(" + pcf[u"adr"][s] + ",0," + hex(i2c_bytes[s]) + ")" )
             print("demo: bus.write_byte(" + pcf[u"adr"][s] + "," + hex(i2c_bytes[s]) + ")" )
@@ -178,7 +180,8 @@ class update(ProtectedPage):
                 increase = [""] * (gv.sd[u"nbrd"] - len(pcf[u"adr"]))
                 pcf[u"adr"].extend(increase)
             elif gv.sd[u"nbrd"] < len(pcf[u"adr"]):
-                pcf[u"adr"] = pcf[u"adr"][: gv.sd[u"nbrd"]]  
+                pcf[u"adr"] = pcf[u"adr"][: gv.sd[u"nbrd"]]
+        pcf[u"addr"] = list(filter(lambda x: len(x) > 0, pcf[u"addr"]))
         for i in range(gv.sd[u"nbrd"]):
             pcf[u"adr"][i] = qdict[u"con" + str(i)]    
         if u"bus" in qdict:
